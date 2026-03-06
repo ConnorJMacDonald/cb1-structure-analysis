@@ -1,0 +1,35 @@
+#!/bin/bash
+
+#Define functions here
+#all.combined.xtc is a trjcat xtc of all systems
+#CA.pdb contanins alpha carbons found in all systems
+make_matrix () {
+echo -e System '\n' System | gmx covar -f all.combined.xtc -pbc -s CA.pdb -o eigen -v eigen -av av -l covar.log -tu ns -asci
+i ascii
+}
+
+#two differnt eigen analysis, combined and then individual
+
+run_eigen_all (){
+echo -e System \n System | gmx anaeig -f all.combined.xtc -v eigen.trr -eig eigen.xvg -s CA.pdb -first 1 -last 2 -proj proj
+-2d 2Dproj -rmsf rmsf -comp comp -extr extr -filt filt
+}
+
+run_eigen_systems () {
+  for d in 7WV9 8WU1 8GHV 9B65 9ERX;
+  do
+          cd "$d"
+        echo -e System \n System | gmx anaeig \
+        -f $d.combined.xtc \
+        -v ../eigen.trr \
+        -eig ../eigen.xvg \
+        -s ../CA.pdb \
+        -first 1 -last 2 \
+        -proj proj -2d 2Dproj -rmsf rmsf -comp comp -extr extr -filt filt
+        cd ..
+done
+}
+
+make_matrix
+run_eigen_all
+run_eigen_systems
