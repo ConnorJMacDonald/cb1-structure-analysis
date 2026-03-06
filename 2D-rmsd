@@ -1,0 +1,67 @@
+#!/bin/bash
+
+#Define Functions
+make_tpr_pdb(){
+echo -e "binding_site\nbinding_site\n" |gmx editconf -f md_1.tpr -n 2Drmsd.ndx -o $x.rmsd.tpr.pdb
+mv $x.rmsd.tpr.pdb /media/hdd/connor/data/2D_rmsd/$x
+gmx editconf -f md_1.tpr -o md_1.tpr.pdb
+}
+prep_2drmsd(){
+for i in {1..5};
+do
+echo -e "binding_site\nbinding_site\n" | gmx trjconv  -f md_$i.xtc \
+      -s md_1.tpr.pdb \
+      -n /media/hdd/connor/data/cluster/$x.ndx \
+      -center \
+      -pbc nojump \
+      -o $i.rmsd.prepped.xtc
+done
+}
+conc(){
+local rep=$1
+echo -e "0\n300000\n600000\n900000\n1200000\n" |gmx trjcat -f *.rmsd.prepped.xtc -o $x.combined.$rep.rmsd.xtc -settime
+mv $x.combined.$rep.rmsd.xtc ..
+}
+make_conc(){
+echo -e "0\n1500000\n3000000\n45000000\n6000000\n" |gmx trjcat -f $x.combined.*.rmsd.xtc -o rmsd.$x.combined.xtc -settime
+mv rmsd.$x.combined.xtc /media/hdd/connor/data/2D_rmsd/$x/
+}
+run_pairwise(){
+echo -e "Protein\nProtein\n" | gmx rms -s ../binding_site.pdb -f rmsd.$p.combined.xtc -m rmsd_matrix.xpm
+}                                                                                                                                                                                                                                                       prep_5way(){                                                                                                                cd /media/hdd/connor/data/2D_rmsd                                                                                           gmx trjcat -f ./8GHV/rmsd.8GHV.combined.xtc ./8WU1/rmsd.8WU1.combined.xtc ./9ERX/rmsd.9ERX.combined.xtc ./7WV9/rmsd.7WV9.combined.xtc ./9B65/rmsd.9B65.combined.xtc -o all.FIVE.rmsd.combined.xtc -cat
+}
+run_5way(){
+gmx rms -s binding_site.pdb  -f all.FIVE.rmsd.combined.xtc -skip 10 -m rmsd_matrix.xpm
+}
+#running of the script
+#Prep portion
+cd /media/hdd/connor/data
+for x in 8WU1 8GHV 9ERX 9B65 7WV9;
+do
+cd $x
+for k in {1..5};
+do
+cd $k
+prep_2drmsd "$k"
+conc "$k"
+cd ..
+done
+make_conc
+cd ..
+done
+cd /media/hdd/connor/data/2D_rmsd
+
+#analysis portion
+for p in 8WU1 8GHV 9ERX 9B65 7WV9;
+do
+cd $p
+if [[ "$p" == "8WU1" ]]; then
+            v=ChA
+        else
+            v=ChB
+fi
+run_pairwise
+cd ..
+done
+prep_5way
+run_5way
