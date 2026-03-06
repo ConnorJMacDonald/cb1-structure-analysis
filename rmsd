@@ -1,0 +1,39 @@
+#!/bin/bash
+#Define Functions Here
+make_nojump () {
+        for i in {1..5};
+do
+gmx editconf -f md_$i.tpr -o md_$i.tpr.pdb
+
+        echo -e "GPCR\nSystem\n" | \
+        gmx trjconv -f md_$i.xtc \
+        -n ../PCA.ndx \
+        -s md_$i.tpr \
+        -pbc nojump -center \
+        -o md_$i.pbc.xtc
+done
+}
+do_rmsd () {
+for i in {1..5};
+do
+        echo -e "GPCR\nGPCR\n" | \
+        gmx rms -s md_${i}.tpr \
+        -f md_${i}.pbc.xtc \
+        -n ../PCA.ndx \
+        -o rmsd_${i}.xvg  -e 300000
+done
+}
+#Run functions
+cd ..
+for d in 8GHV 8WU1 9B65 9ERX;
+do
+        cd $d
+        for n in {1..5};
+        do
+                cd $n
+                make_nojump
+                do_rmsd
+                cd ..
+        done
+        cd ..
+done
