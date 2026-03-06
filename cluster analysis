@@ -1,0 +1,77 @@
+#!/bin/bash
+#Define Functions
+# v is created later, its to tell us what chain the protein is as its not the same in all systems
+# rot+trans as the cluster is RMSD
+# 300000 to set the lenght of all xtc files to the same
+prep_cluster(){
+  for i in {1..5};
+do
+echo -e "$v\nSystem\n" |  gmx trjconv \
+      -f "md_${i}.xtc" \
+      -s "md_${i}.tpr.pdb" \
+      -n ../PCA.ndx \
+      -center \
+      -pbc nojump \
+      -e 300000 \
+      -o "cluster_${i}.xtc"
+  done
+}
+#make all xtc files one
+concat_cluster() {
+local rep=$1
+echo -e "0\n300000\n600000\n900000\n1200000\n" | gmx trjcat -f cluster_*.xtc -o cluster.$rep.xtc -settime
+}
+#running of the cluster
+#cutoff can be altered to change number of clusters, up for less down for more
+run_cluster (){
+for d in 7WV9 8GHV 8WU1 9ERX 9B65;
+do
+cd $d
+echo -e "binding_site\nProtein\n" |gmx cluster -f ../$d.combined.xtc \
+  -s ../$d.tpr.pdb \
+  -n ../$d.ndx \
+  -cutoff 0.12 \
+  -sz ./$d.xvg \
+  -wcl 10 \
+  -nst 10 \
+  -o ./$d.clusters.xmp \
+  -cl ./$d.centroids.pdb \
+  -clndx ./$d.clusters.ndx \
+  -g ./$d.cluster.log
+cd ..
+
+done
+}
+make_tpr_pdb (){
+for x in 8WU1 8GHV 7WV9 9ERX 9B65;
+do
+cd /media/hdd/connor/data/$x/1
+gmx editconf -f md_1.tpr -o $x.tpr.pdb
+cp $x.tpr.pdb /media/hdd/connor/data/cluster
+done
+}
+Run script
+make_tpr_pdb
+cd /media/hdd/connor/data/
+for k in 7WV9 8GHV 8WU1 9ERX 9B65;
+do
+cd $k
+for m in {1..5};
+do
+       cd $m
+if [[ "$k" == "8WU1" ]]; then
+            v=ChA
+        else
+            v=ChB
+fi
+prep_cluster
+concat_cluster "$m"
+mv cluster.*.xtc ..
+cd ..
+done
+echo -e "0\n1500000\n3000000\n4500000\n6000000\n" | gmx trjcat -f cluster.*.xtc -o $k.combined.xtc -settime
+mv $k.combined.xtc /media/hdd/connor/data/cluster
+cd ..
+done
+cd /media/hdd/connor/data/cluster
+run_cluster
