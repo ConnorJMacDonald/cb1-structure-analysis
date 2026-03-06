@@ -1,0 +1,35 @@
+#!/bin/bash
+#Define Functions
+
+prep() {
+for i in 8GHV 8WU1 7WV9 9B65 9ERX;
+do
+echo -e "binding_site\nbinding_site\n" |  gmx trjconv \
+      -f ../$i.combined.xtc \
+      -s ../$i.tpr.pdb \
+      -n ../$i.ndx \
+      -center \
+      -pbc nojump \
+      -o ./$i.prepped.xtc
+done
+}
+
+maketpr(){
+gmx editconf -f ../9ERX.tpr.pdb -n ../9ERX.ndx -o binding_site.tpr.pdb
+}
+
+makeconc(){
+echo -e "0\n7500000\n15000000\n22500000\n30000000\n" |gmx trjcat -f *.prepped.xtc -o ./all.combined.xtc -settime
+}
+
+makematrix(){
+echo -e "System\nSystem" | gmx covar -f all.combined.xtc -pbc -s binding_site.tpr.pdb -o eigen -v eigen -av av \
+-l covar.log -tu ns -ascii ascii
+
+echo -e "System\nSystem" | gmx anaeig -f all.combined.xtc -v eigen.trr -eig eigen.xvg -s binding_site.tpr.pdb -first 1 -last 2 -proj proj -2d 2Dproj -rmsf rmsf -comp comp -extr extr -filt filt
+}
+
+prep
+maketpr
+makeconc
+makematrix
