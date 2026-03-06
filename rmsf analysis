@@ -1,0 +1,13 @@
+#!/bin/bash
+
+for d in 8GHV 7WV9 8WU1 9B65 9ERX;
+do
+
+                echo -e "binding_site" | \
+                gmx rmsf -f /media/hdd/connor/data/cluster/$d.combined.xtc \
+                -n /media/hdd/connor/data/cluster/$d.ndx \
+                -s /media/hdd/connor/data/cluster/$d.tpr.pdb \
+                -o ./rmsf_$d.xvg \
+                -b 300000 \
+                -res
+done
